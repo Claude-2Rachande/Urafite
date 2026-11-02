@@ -1,0 +1,12 @@
+URAFITE Supabase MVP project
+
+app.py                                      Streamlit application
+requirements.txt                            Python dependencies
+.streamlit/config.toml                      Streamlit theme configuration
+.streamlit/secrets.toml.example             Supabase credentials template (copy to secrets.toml)
+.gitignore                                  Excludes local secrets and virtual environments
+database/002_profile_and_default_role_trigger.sql  Signup profile/default-role migration
+README.md                                   Setup and deployment notes
+LANGUAGE_QA.md                              Multilingual coverage and manual QA checklist
+
+Never commit .streamlit/secrets.toml or any Supabase secret/service-role key.
