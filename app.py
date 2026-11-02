@@ -694,10 +694,13 @@ def _urafite_auth_screen():
                     response = _urafite_sb.auth.sign_up({
                         "email": new_email.strip(),
                         "password": new_password,
-                        "options": {"data": {
-                            "display_name": display_name.strip(),
-                            "preferred_language": language_codes[language]
-                        }}
+                        "options": {
+    "email_redirect_to": "https://urafite-eibn9f35u3j4rwgdyqoexx.streamlit.app/",
+    "data": {
+        "display_name": display_name.strip(),
+        "preferred_language": language_codes[language]
+    }
+}
                     })
                     if response.session:
                         st.session_state["urafite_access_token"] = response.session.access_token
