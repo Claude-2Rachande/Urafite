@@ -1790,89 +1790,222 @@ elif page == "AI Companion":
             st.session_state["urafite_chat_history"][0]["content"] = welcome.get(language, welcome["English"])
 
     def urafite_support_response(message, lang, history):
-        """Transparent, rules-based support responses; no claim of live AI understanding."""
-        text = message.lower().strip()
-        frustration = [
-            "stop asking", "don't ask", "do not ask", "you keep asking", "leave me alone",
-            "stop repeating", "not helpful", "annoying", "shut up",
-            "reka kumbaza", "ntukomeze kumbaza", "bireke",
-            "arrête de demander", "ne me demande", "cesse de demander"
+        """Context-aware, rules-based support. This is not a live AI model."""
+        text = (message or "").lower().strip()
+        lang = lang if lang in ("English", "Kinyarwanda", "Français") else "English"
+
+        keywords = {
+            "crisis": [
+                "suicide", "kill myself", "end my life", "want to die",
+                "don't want to live", "do not want to live", "hurt myself",
+                "self harm", "self-harm", "kwiyahura", "kwica",
+                "sinshaka kubaho", "me suicider", "mettre fin à mes jours"
+            ],
+            "frustration": [
+                "stop asking", "don't ask", "do not ask", "you keep asking",
+                "leave me alone", "stop repeating", "not helpful", "annoying",
+                "shut up", "reka kumbaza", "ntukomeze kumbaza", "bireke",
+                "arrête de demander", "ne me demande", "cesse de demander"
+            ],
+            "gambling": [
+                "gambling", "betting", "gamble", "bet ", "casino", "sportsbook",
+                "chasing losses", "urusimbi", "gutega", "guteza", "parier",
+                "jeu d'argent", "jeux d'argent"
+            ],
+            "money": [
+                "money", "debt", "financial", "savings", "salary", "income",
+                "broke", "lost money", "expenses", "budget", "phone", "buy",
+                "purchase", "amafaranga", "umwenda", "kuzigama", "ikiguzi",
+                "téléphone", "argent", "dette", "épargne", "acheter"
+            ],
+            "opportunity": [
+                "education", "school", "university", "scholarship", "study",
+                "learning", "career", "job", "employment", "skills", "business",
+                "internship", "training", "amashuri", "akazi", "buruse",
+                "ubumenyi", "études", "emploi", "bourse", "formation",
+                "compétences"
+            ],
+            "emotion": [
+                "sad", "stressed", "stress", "anxious", "anxiety", "lonely",
+                "ashamed", "guilty", "hopeless", "overwhelmed", "depressed",
+                "failure", "regret", "agahinda", "mpangayitse", "mfite ubwoba",
+                "nacitse intege", "triste", "stressé", "angoissé", "honte",
+                "désespéré"
+            ]
+        }
+
+        def detect_topic(value):
+            for topic in ("crisis", "frustration", "gambling", "money", "opportunity", "emotion"):
+                if any(term in value for term in keywords[topic]):
+                    return topic
+            return None
+
+        category = detect_topic(text)
+
+        # Use the immediately preceding user topic for short follow-ups only.
+        # A clearly detected new topic always takes precedence.
+        previous_topic = None
+        previous_user_messages = [
+            item.get("content", "").lower().strip()
+            for item in history[:-1]
+            if item.get("role") == "user" and item.get("content")
         ]
-        crisis = [
-            "suicide", "kill myself", "end my life", "want to die", "don't want to live",
-            "do not want to live", "hurt myself", "self harm", "self-harm",
-            "kwiyahura", "kwica", "sinshaka kubaho", "me suicider", "mettre fin à mes jours"
-        ]
-        gambling = [
-            "gambling", "betting", "gamble", "bet ", "casino", "sportsbook", "chasing losses",
-            "urusimbi", "gutega", "guteza", "parier", "jeu d'argent", "jeux d'argent"
-        ]
-        money = [
-            "money", "debt", "financial", "savings", "salary", "income", "broke",
-            "lost money", "expenses", "budget", "phone", "buy", "purchase",
-            "amafaranga", "umwenda", "kuzigama", "ikiguzi", "téléphone", "argent",
-            "dette", "épargne", "budget", "acheter"
-        ]
-        opportunities = [
-            "education", "school", "university", "scholarship", "study", "learning",
-            "career", "job", "employment", "skills", "business", "internship", "training",
-            "amashuri", "akazi", "buruse", "ubumenyi", "études", "emploi", "bourse",
-            "formation", "compétences"
-        ]
-        emotions = [
-            "sad", "stressed", "stress", "anxious", "anxiety", "lonely", "ashamed",
-            "guilty", "hopeless", "overwhelmed", "depressed", "failure", "regret",
-            "agahinda", "mpangayitse", "mfite ubwoba", "nacitse intege",
-            "triste", "stressé", "angoissé", "honte", "désespéré"
-        ]
+        if previous_user_messages:
+            for earlier_message in reversed(previous_user_messages[-4:]):
+                previous_topic = detect_topic(earlier_message)
+                if previous_topic:
+                    break
+
+        follow_up_phrases = (
+            "yes", "yeah", "okay", "ok", "no", "maybe", "that one",
+            "tell me more", "what next", "how", "why", "please do",
+            "yego", "oya", "birashoboka", "none se", "oui", "non",
+            "d'accord", "expliquez", "et ensuite"
+        )
+        is_short_follow_up = (
+            len(text.split()) <= 7
+            or any(phrase in text for phrase in follow_up_phrases)
+        )
+        if category is None and is_short_follow_up and previous_topic:
+            category = previous_topic
+        if category is None:
+            category = "general"
 
         replies = {
             "English": {
-                "crisis": "I'm really sorry this feels so painful. You deserve immediate support from a real person. If you may act on these thoughts or are in immediate danger, contact local emergency services or go to the nearest hospital emergency department now. If possible, tell someone you trust and ask them to stay with you. I cannot assess risk or provide emergency intervention.",
-                "frustration": "You're right. I was repeating the same question, and I'm sorry. I won't ask it again. We can pause, or I can offer a practical suggestion without asking you to explain more. You can choose what feels comfortable.",
-                "gambling": "Thank you for telling me. Trying to win back losses can increase financial pressure. For today, consider not placing another bet, stepping away from betting apps and adverts, and asking someone you trust to help you create distance from money you might gamble. If you want, RECOVER has a short check-in and REBUILD can help you plan your finances.",
-                "money": "Let's make this practical. Before buying something or making a financial decision, protect essentials first: food, housing, transport, education and existing obligations. Then decide what amount, if any, is safe to spend and what you want to keep as savings. Avoid borrowing or betting to multiply money. REBUILD can help you map this out in RWF.",
-                "opportunity": "That is a worthwhile direction. Turn it into one manageable action: identify the goal, find one credible programme or employer, check eligibility and deadlines, then prepare the required documents. RECONNECT can help you shape a simple action plan. The opportunities currently shown there are examples, not verified live openings.",
-                "emotion": "Thank you for being open. You do not have to fix everything at once. It may help to pause, take a few slow breaths, move somewhere you feel comfortable, or contact someone you trust. If these feelings persist or become difficult to manage, consider speaking with a qualified counsellor or mental-health professional.",
-                "general": "I hear you. We can take this one step at a time. I can offer practical guidance about reducing gambling harm, managing money, finding opportunities, or handling a difficult moment. You do not need to share anything you would rather keep private."
+                "crisis": [
+                    "I'm really sorry this feels so painful. You deserve immediate support from a real person. If you may act on these thoughts or are in immediate danger, contact local emergency services or go to the nearest hospital emergency department now. If possible, tell someone you trust and ask them to stay with you. I cannot assess risk or provide emergency intervention."
+                ],
+                "frustration": [
+                    "You're right to tell me. I'm sorry this has felt repetitive or unhelpful. I won't keep asking questions. We can pause here, or I can share one practical suggestion without asking you to explain more."
+                ],
+                "gambling": [
+                    "Thank you for telling me. Trying to win back losses can increase financial pressure. For now, consider not placing another bet, stepping away from betting apps and adverts, and asking someone you trust to help you create distance from money you might gamble.",
+                    "A difficult urge does not have to become another bet. You could delay any decision, leave the betting environment and contact someone you trust. RECOVER can help you reflect on triggers, while REBUILD can support a practical money plan."
+                ],
+                "money": [
+                    "Let's make this manageable. Protect essentials first: food, housing, transport, education and existing obligations. Then work out what is safe to spend and what you can set aside. Avoid borrowing or betting to try to multiply money; REBUILD can help you organise a budget in RWF.",
+                    "Financial pressure can make every decision feel urgent. Start with what must be paid, what can wait and what support is available. A simple plan is safer than trying to recover money through another bet."
+                ],
+                "opportunity": [
+                    "That is a worthwhile direction. Turn it into one manageable action: identify your goal, find one credible programme or employer, check eligibility and deadlines, then prepare the required documents. RECONNECT can help you shape an action plan. Opportunities displayed there are examples unless independently verified.",
+                    "You do not need to solve your whole career plan today. Choose one target, check its requirements and deadline, and prepare one part of your application. RECONNECT is designed to help you move from an idea to a practical next step."
+                ],
+                "emotion": [
+                    "Thank you for being open. You do not have to fix everything at once. It may help to pause, take a few slow breaths, move somewhere you feel comfortable, or contact someone you trust. If these feelings persist or become difficult to manage, consider speaking with a qualified counsellor or mental-health professional.",
+                    "That sounds like a heavy moment. Try to make the next few minutes gentler: step away from pressure, breathe slowly and reach out to someone you trust. You deserve support, and a qualified professional can help if this keeps feeling difficult."
+                ],
+                "general": [
+                    "I hear you. We can take this one step at a time. I can offer practical guidance about reducing gambling harm, managing money, finding opportunities or handling a difficult moment. You do not need to share anything you would rather keep private.",
+                    "Thanks for sharing that with me. I may not understand every detail, but I can help you explore a practical next step around wellbeing, gambling, finances, education or work."
+                ]
             },
             "Kinyarwanda": {
-                "crisis": "Mbabajwe n'uko uri kunyura mu bihe bikomeye. Ukwiriye kubona ubufasha bw'umuntu ako kanya. Niba ushobora kwigirira nabi cyangwa uri mu kaga, hamagara ubutabazi bwihutirwa cyangwa ujye ku bitaro bikwegereye ubu. Niba bishoboka, bwira umuntu wiringira agusigarane. Iyi porogaramu ntishobora gusuzuma ibyago cyangwa gutanga ubutabazi bwihutirwa.",
-                "frustration": "Ufite ukuri. Nakomeje kukubaza ikibazo kimwe, kandi ndasaba imbabazi. Sinzongera kukibaza. Dushobora kuruhuka cyangwa nkaguha igitekerezo gifatika utiriwe usobanura byinshi. Hitamo ikikoroheye.",
-                "gambling": "Urakoze kubimbwira. Kugerageza kugaruza amafaranga watakaje mu rusimbi bishobora kongera ibibazo by'amafaranga. Uyu munsi, gerageza kutongera gutega, wigire kure ya porogaramu n'amatangazo y'urusimbi, kandi usabe umuntu wiringira kugufasha kwirinda gukoresha amafaranga mu gutega. Ushobora gukoresha RECOVER na REBUILD.",
-                "money": "Reka tubishyire mu bikorwa. Mbere yo kugura ikintu cyangwa gufata icyemezo cy'amafaranga, banza urinde ibikenewe by'ibanze: ibiribwa, icumbi, ingendo, amashuri n'imyenda. Hanyuma uteganye amafaranga ushobora gukoresha n'ayo ushaka kuzigama. Irinde gufata umwenda cyangwa gutega kugira ngo wikubire amafaranga. REBUILD yagufasha kubitegura muri RWF.",
-                "opportunity": "Icyo ni intego nziza. Yigabanyemo intambwe nto: menya icyo ushaka kugeraho, shaka gahunda cyangwa umukoresha wizewe, reba ibisabwa n'igihe ntarengwa, utegure inyandiko. RECONNECT yagufasha gukora gahunda y'ibikorwa. Amahirwe agaragara ubu ni ingero, si imyanya yemejwe ko igifunguye.",
-                "emotion": "Urakoze kuvuga uko wiyumva. Ntugomba gukemura byose icyarimwe. Fata akanya, uhumeke buhoro, ujye ahantu wumva utuje cyangwa uvugishe umuntu wiringira. Niba ibi byiyumvo bikomeje cyangwa bikurushya, tekereza kuganira n'umujyanama cyangwa inzobere mu buzima bwo mu mutwe.",
-                "general": "Ndakumva. Dushobora kugenda intambwe ku yindi. Nshobora kugufasha gutekereza ku kugabanya ingaruka z'urusimbi, gucunga amafaranga, gushaka amahirwe cyangwa guhangana n'ibihe bikomeye. Ntugomba kuvuga ibyo wifuza kugumana ibanga."
+                "crisis": [
+                    "Mbabajwe n'uko uri kunyura mu bihe bikomeye. Ukwiriye kubona ubufasha bw'umuntu ako kanya. Niba ushobora kwigirira nabi cyangwa uri mu kaga, hamagara ubutabazi bwihutirwa cyangwa ujye ku bitaro bikwegereye ubu. Niba bishoboka, bwira umuntu wiringira agusigarane. Iyi porogaramu ntishobora gusuzuma ibyago cyangwa gutanga ubutabazi bwihutirwa."
+                ],
+                "frustration": [
+                    "Urakoze kumbwira uko ubyumva. Mbabarira niba ibisubizo byanjye byagiye bisubiramo cyangwa bitagufashije. Sinzakomeza kukubaza ibibazo. Dushobora kuruhuka hano cyangwa nkaguha igitekerezo kimwe gifatika utiriwe usobanura byinshi."
+                ],
+                "gambling": [
+                    "Urakoze kubimbwira. Kugerageza kugaruza amafaranga watakaje mu rusimbi bishobora kongera ibibazo by'amafaranga. Ubu gerageza kutongera gutega, wigire kure ya porogaramu n'amatangazo y'urusimbi, kandi usabe umuntu wiringira kugufasha kwirinda gukoresha amafaranga mu gutega.",
+                    "Kugira ubushake bwo kongera gutega ntibivuze ko ugomba kubikora. Ushobora kubanza gutegereza, kuva aho bategera no kuvugisha umuntu wiringira. RECOVER yagufasha gutekereza ku bigutera gutega, naho REBUILD ikagufasha gutegura imikoreshereze y'amafaranga."
+                ],
+                "money": [
+                    "Reka tubishyire mu buryo bworoshye. Banza urinde ibikenewe by'ibanze: ibiribwa, icumbi, ingendo, amashuri n'imyenda. Hanyuma uteganye amafaranga ushobora gukoresha n'ayo kuzigama. Irinde gufata umwenda cyangwa gutega kugira ngo wikubire amafaranga. REBUILD yagufasha gutegura ingengo y'imari muri RWF.",
+                    "Ibibazo by'amafaranga bishobora gutuma buri cyemezo wumva ko cyihutirwa. Banza wandike ibikenewe kwishyurwa, ibishobora gutegereza n'ubufasha ushobora kubona. Gahunda yoroshye iruta kugerageza kugaruza amafaranga mu rusimbi."
+                ],
+                "opportunity": [
+                    "Icyo ni intego nziza. Yigabanyemo intambwe nto: menya icyo ushaka kugeraho, shaka gahunda cyangwa umukoresha wizewe, reba ibisabwa n'igihe ntarengwa, utegure inyandiko. RECONNECT yagufasha gukora gahunda. Amahirwe agaragara kuri porogaramu ni ingero keretse habanje kugenzurwa ko akiriho.",
+                    "Ntugomba gutegura ejo hazaza hawe hose uyu munsi. Hitamo intego imwe, reba ibisabwa n'igihe ntarengwa, hanyuma utegure igice kimwe cy'ubusabe bwawe. RECONNECT yagufasha guhindura igitekerezo intambwe ifatika."
+                ],
+                "emotion": [
+                    "Urakoze kuvuga uko wiyumva. Ntugomba gukemura byose icyarimwe. Fata akanya, uhumeke buhoro, ujye ahantu wumva utuje cyangwa uvugishe umuntu wiringira. Niba ibi byiyumvo bikomeje cyangwa bikurushya, tekereza kuganira n'umujyanama cyangwa inzobere mu buzima bwo mu mutwe.",
+                    "Birasa n'aho uri kunyura mu bihe bikuremereye. Gerageza kworoshya iminota mike iri imbere: va mu bintu bikugora, uhumeke buhoro kandi uvugishe umuntu wiringira. Ukwiriye ubufasha; inzobere ishobora kugufasha niba bikomeje kukugora."
+                ],
+                "general": [
+                    "Ndakumva. Dushobora kugenda intambwe ku yindi. Nshobora kugufasha gutekereza ku kugabanya ingaruka z'urusimbi, gucunga amafaranga, gushaka amahirwe cyangwa guhangana n'ibihe bikomeye. Ntugomba kuvuga ibyo wifuza kugumana ibanga.",
+                    "Urakoze kubimbwira. Sinshobora kumva buri kantu kose, ariko nshobora kugufasha gutekereza ku ntambwe ikurikira yerekeye ubuzima bwiza, urusimbi, amafaranga, amashuri cyangwa akazi."
+                ]
             },
             "Français": {
-                "crisis": "Je suis désolé que vous traversiez une période aussi douloureuse. Vous méritez une aide humaine immédiate. Si vous risquez de passer à l'acte ou êtes en danger immédiat, contactez les services d'urgence locaux ou rendez-vous au service des urgences de l'hôpital le plus proche. Si possible, prévenez une personne de confiance et demandez-lui de rester avec vous. Cette plateforme ne peut pas évaluer le risque ni intervenir en urgence.",
-                "frustration": "Vous avez raison. J'ai répété la même question et je vous présente mes excuses. Je ne la poserai plus. Nous pouvons faire une pause ou je peux proposer une piste concrète sans vous demander davantage d'explications. Choisissez ce qui vous convient.",
-                "gambling": "Merci de me l'avoir dit. Essayer de récupérer des pertes en rejouant peut aggraver la pression financière. Pour aujourd'hui, essayez de ne pas miser à nouveau, éloignez-vous des applications et publicités de paris et demandez à une personne de confiance de vous aider à protéger l'argent que vous pourriez miser. RECOVER et REBUILD peuvent vous accompagner dans vos réflexions.",
-                "money": "Passons au concret. Avant un achat ou une décision financière, protégez d'abord les besoins essentiels : alimentation, logement, transport, études et obligations existantes. Déterminez ensuite ce que vous pouvez dépenser sans risque et ce que vous souhaitez épargner. Évitez d'emprunter ou de parier pour multiplier votre argent. REBUILD peut vous aider à organiser votre budget en RWF.",
-                "opportunity": "C'est un objectif intéressant. Transformez-le en une petite action : précisez votre objectif, trouvez un programme ou un employeur fiable, vérifiez les critères et les délais, puis préparez les documents nécessaires. RECONNECT peut vous aider à établir un plan. Les possibilités présentées actuellement sont des exemples, pas des offres vérifiées et ouvertes.",
-                "emotion": "Merci de partager ce que vous ressentez. Vous n'avez pas à tout résoudre aujourd'hui. Faites une pause, respirez lentement, installez-vous dans un endroit où vous vous sentez à l'aise ou contactez une personne de confiance. Si cette détresse persiste, envisagez de parler à un professionnel qualifié.",
-                "general": "Je vous entends. Nous pouvons avancer étape par étape. Je peux proposer des pistes concrètes pour réduire les risques liés aux jeux d'argent, gérer votre budget, trouver des possibilités ou traverser un moment difficile. Vous n'avez pas à partager ce que vous préférez garder privé."
+                "crisis": [
+                    "Je suis désolé que vous traversiez une période aussi douloureuse. Vous méritez une aide humaine immédiate. Si vous risquez de passer à l'acte ou êtes en danger immédiat, contactez les services d'urgence locaux ou rendez-vous au service des urgences de l'hôpital le plus proche. Si possible, prévenez une personne de confiance et demandez-lui de rester avec vous. Cette plateforme ne peut pas évaluer le risque ni intervenir en urgence."
+                ],
+                "frustration": [
+                    "Merci de me l'avoir dit. Je suis désolé si mes réponses ont été répétitives ou peu utiles. Je ne vais pas continuer à poser des questions. Nous pouvons faire une pause ou je peux proposer une seule piste concrète sans vous demander davantage d'explications."
+                ],
+                "gambling": [
+                    "Merci de me l'avoir dit. Essayer de récupérer des pertes en rejouant peut aggraver la pression financière. Pour le moment, essayez de ne pas miser à nouveau, éloignez-vous des applications et publicités de paris et demandez à une personne de confiance de vous aider à protéger l'argent que vous pourriez miser.",
+                    "Ressentir l'envie de rejouer ne signifie pas que vous devez agir. Vous pouvez attendre avant toute décision, quitter l'environnement de jeu et contacter une personne de confiance. RECOVER aide à réfléchir aux déclencheurs et REBUILD à organiser un plan financier."
+                ],
+                "money": [
+                    "Passons au concret. Protégez d'abord les besoins essentiels : alimentation, logement, transport, études et obligations existantes. Déterminez ensuite ce que vous pouvez dépenser sans risque et ce que vous souhaitez épargner. Évitez d'emprunter ou de parier pour multiplier votre argent. REBUILD peut vous aider à organiser votre budget en RWF.",
+                    "La pression financière peut donner l'impression que chaque décision est urgente. Commencez par noter ce qui doit être payé, ce qui peut attendre et les aides possibles. Un plan simple est plus sûr que de tenter de récupérer de l'argent en rejouant."
+                ],
+                "opportunity": [
+                    "C'est un objectif intéressant. Transformez-le en une petite action : précisez votre objectif, trouvez un programme ou un employeur fiable, vérifiez les critères et les délais, puis préparez les documents nécessaires. RECONNECT peut vous aider à établir un plan. Les possibilités affichées sont des exemples tant qu'elles n'ont pas été vérifiées.",
+                    "Vous n'avez pas besoin de définir tout votre avenir aujourd'hui. Choisissez un objectif, vérifiez les conditions et la date limite, puis préparez une partie de votre candidature. RECONNECT vous aide à transformer une idée en prochaine étape concrète."
+                ],
+                "emotion": [
+                    "Merci de partager ce que vous ressentez. Vous n'avez pas à tout résoudre aujourd'hui. Faites une pause, respirez lentement, installez-vous dans un endroit où vous vous sentez à l'aise ou contactez une personne de confiance. Si cette détresse persiste, envisagez de parler à un professionnel qualifié.",
+                    "Cela semble être un moment difficile. Essayez de rendre les prochaines minutes un peu plus faciles : éloignez-vous de la pression, respirez lentement et contactez une personne de confiance. Vous méritez du soutien et un professionnel qualifié peut vous aider si cela continue."
+                ],
+                "general": [
+                    "Je vous entends. Nous pouvons avancer étape par étape. Je peux proposer des pistes concrètes pour réduire les risques liés aux jeux d'argent, gérer votre budget, trouver des possibilités ou traverser un moment difficile. Vous n'avez pas à partager ce que vous préférez garder privé.",
+                    "Merci de me l'avoir confié. Je ne comprends peut-être pas chaque détail, mais je peux vous aider à réfléchir à une prochaine étape concernant le bien-être, les jeux d'argent, les finances, les études ou le travail."
+                ]
             }
         }
 
-        # Prioritise safety and conversational boundaries over broad keyword matches.
-        if any(term in text for term in crisis):
-            category = "crisis"
-        elif any(term in text for term in frustration):
-            category = "frustration"
-        elif any(term in text for term in gambling):
-            category = "gambling"
-        elif any(term in text for term in money):
-            category = "money"
-        elif any(term in text for term in opportunities):
-            category = "opportunity"
-        elif any(term in text for term in emotions):
-            category = "emotion"
-        else:
-            category = "general"
+        # Crisis and frustration always override conversational context.
+        options = replies[lang][category]
+        recent_assistant = [
+            item.get("content", "")
+            for item in history[:-1]
+            if item.get("role") == "assistant"
+        ][-4:]
+        # Rotate alternatives to avoid sending the same wording repeatedly.
+        response = next(
+            (option for option in options if option not in recent_assistant),
+            options[0]
+        )
 
-        return replies.get(lang, replies["English"])[category]
+        # Add one focused prompt for ordinary support topics, but avoid
+        # interrogating someone who is distressed or has asked us to stop.
+        prompts = {
+            "English": {
+                "gambling": ["Would it help to identify what triggered the urge today?", "A useful next step could be making it harder to access betting for the rest of today."],
+                "money": ["A useful starting point is separating essential expenses from expenses that can wait.", "You could begin with a simple list of money coming in and essential costs."],
+                "opportunity": ["You could start by choosing one opportunity area: study, skills, work or business.", "The next practical step is to check one programme's eligibility and deadline."],
+                "emotion": ["For now, consider choosing one small thing that would help you feel supported.", "You might begin by identifying one person you feel comfortable contacting."],
+                "general": ["You can tell me which of those areas feels most important right now.", "We can focus on just one issue rather than everything at once."]
+            },
+            "Kinyarwanda": {
+                "gambling": ["Byagufasha gutekereza ku cyaguteye gushaka gutega uyu munsi?", "Intambwe nziza yaba ukugabanya uburyo wageraho porogaramu z'urusimbi uyu munsi."],
+                "money": ["Waheraho utandukanya amafaranga y'ibikenewe n'ashobora gutegereza.", "Ushobora gutangira wandika amafaranga winjiza n'ibikenewe kwishyurwa."],
+                "opportunity": ["Wahitamo aho uhera: amashuri, ubumenyi, akazi cyangwa ubucuruzi.", "Intambwe ikurikira ni ukureba ibisabwa n'igihe ntarengwa kuri gahunda imwe."],
+                "emotion": ["Ubu hitamo ikintu kimwe gito cyatuma wumva ubonye ubufasha.", "Ushobora gutekereza ku muntu umwe wumva wakwiyambaza."],
+                "general": ["Wambwira icyiciro wumva cy'ingenzi kuri wowe ubu.", "Dushobora kwibanda ku kibazo kimwe aho kugerageza gukemura byose."]
+            },
+            "Français": {
+                "gambling": ["Souhaitez-vous identifier ce qui a déclenché cette envie aujourd'hui ?", "Une étape utile serait de limiter votre accès aux applications de paris pour le reste de la journée."],
+                "money": ["Vous pouvez commencer par distinguer les dépenses essentielles de celles qui peuvent attendre.", "Une première étape consiste à noter vos revenus et vos dépenses indispensables."],
+                "opportunity": ["Vous pourriez choisir un domaine prioritaire : études, compétences, emploi ou entrepreneuriat.", "La prochaine étape concrète consiste à vérifier les critères et la date limite d'un programme."],
+                "emotion": ["Pour le moment, choisissez une petite chose qui pourrait vous apporter du soutien.", "Vous pourriez penser à une personne que vous vous sentez à l'aise de contacter."],
+                "general": ["Vous pouvez me dire quel domaine vous semble le plus important actuellement.", "Nous pouvons nous concentrer sur un seul sujet à la fois."]
+            }
+        }
+
+        if category not in ("crisis", "frustration"):
+            prompt_options = prompts[lang].get(category, [])
+            if prompt_options:
+                recent_prompts = [p for p in prompt_options if any(p in item for item in recent_assistant)]
+                available_prompts = [p for p in prompt_options if p not in recent_prompts]
+                prompt = available_prompts[0] if available_prompts else prompt_options[0]
+                response = response + "\n\n" + prompt
+
+        return response
 
     # Text and voice are two interfaces to the same conversation history.
     voice_labels = {
