@@ -503,29 +503,43 @@ div[data-testid="stMetricValue"] { color: var(--ura-forest); font-family: 'Manro
   color: #FFFFFF !important;
   opacity: 1 !important;
 }
-/* URAFITE input field styling */
-.stTextInput div[data-baseweb="input"],
-.stTextArea div[data-baseweb="textarea"],
-.stNumberInput div[data-baseweb="input"] {
-    background-color: #EAF5EF !important;
+/* URAFITE: Visible input fields */
+div[data-testid="stTextInput"] [data-baseweb="input"],
+div[data-testid="stNumberInput"] [data-baseweb="input"],
+div[data-testid="stTextArea"] [data-baseweb="textarea"] {
+    background-color: #E5F2EA !important;
     border: 1.5px solid #36836B !important;
     border-radius: 10px !important;
     box-shadow: none !important;
 }
 
-.stTextInput input,
-.stTextArea textarea,
-.stNumberInput input {
-    background-color: transparent !important;
+/* Style the inner input container */
+div[data-testid="stTextInput"] [data-baseweb="input"] > div,
+div[data-testid="stNumberInput"] [data-baseweb="input"] > div {
+    background-color: #E5F2EA !important;
+}
+
+/* Actual text-entry fields */
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stTextArea"] textarea {
+    background-color: #E5F2EA !important;
     color: #193D32 !important;
     border-radius: 10px !important;
 }
 
-.stTextInput div[data-baseweb="input"]:focus-within,
-.stTextArea div[data-baseweb="textarea"]:focus-within,
-.stNumberInput div[data-baseweb="input"]:focus-within {
+/* Highlight focused fields */
+div[data-testid="stTextInput"] [data-baseweb="input"]:focus-within,
+div[data-testid="stNumberInput"] [data-baseweb="input"]:focus-within,
+div[data-testid="stTextArea"] [data-baseweb="textarea"]:focus-within {
     border: 2px solid #176B52 !important;
     box-shadow: 0 0 0 3px rgba(23,107,82,0.12) !important;
+}
+
+/* Dropdowns */
+.stSelectbox [data-baseweb="select"],
+.stMultiSelect [data-baseweb="select"] {
+    border-radius: 10px !important;
 }
 
 .stSelectbox [data-baseweb="select"],
