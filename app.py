@@ -503,9 +503,34 @@ div[data-testid="stMetricValue"] { color: var(--ura-forest); font-family: 'Manro
   color: #FFFFFF !important;
   opacity: 1 !important;
 }
-.stTextInput input, .stTextArea textarea, .stNumberInput input,
-.stSelectbox [data-baseweb="select"], .stMultiSelect [data-baseweb="select"] {
-  border-radius: 10px;
+/* URAFITE input field styling */
+.stTextInput div[data-baseweb="input"],
+.stTextArea div[data-baseweb="textarea"],
+.stNumberInput div[data-baseweb="input"] {
+    background-color: #EAF5EF !important;
+    border: 1.5px solid #36836B !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input {
+    background-color: transparent !important;
+    color: #193D32 !important;
+    border-radius: 10px !important;
+}
+
+.stTextInput div[data-baseweb="input"]:focus-within,
+.stTextArea div[data-baseweb="textarea"]:focus-within,
+.stNumberInput div[data-baseweb="input"]:focus-within {
+    border: 2px solid #176B52 !important;
+    box-shadow: 0 0 0 3px rgba(23,107,82,0.12) !important;
+}
+
+.stSelectbox [data-baseweb="select"],
+.stMultiSelect [data-baseweb="select"] {
+    border-radius: 10px !important;
 }
 div[data-testid="stAlert"] { border-radius: 12px; }
 hr { border-color: var(--ura-line); }
@@ -521,7 +546,14 @@ hr { border-color: var(--ura-line); }
   box-shadow: 0 0 0 35px rgba(255,255,255,.035), 0 0 0 70px rgba(255,255,255,.025);
 }
 .ura-hero h1 { color: white !important; margin: 0 0 12px 0; }
-.ura-hero p { color: #E7F3EE; font-size: 1.08rem; max-width: 720px; margin-bottom: 0; }
+.ura-hero p {
+    color: #FFFFFF !important;
+    font-size: 1.08rem;
+    max-width: 720px;
+    margin-bottom: 0;
+    font-weight: 500;
+    line-height: 1.7;
+}
 .ura-eyebrow { color: #C5E6D8; text-transform: uppercase; letter-spacing: .13em; font-size: .76rem; font-weight: 700; margin-bottom: 12px; }
 .ura-card {
   background: white; border: 1px solid var(--ura-line); border-radius: 16px;
