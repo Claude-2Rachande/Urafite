@@ -2593,5 +2593,3 @@ elif page == "Professional Support":
         "- Take a trusted person with you if that would make the conversation easier."
     )
     st.info("Before public launch, URAFITE should add a locally reviewed and verified referral directory, with clear consent and safeguarding procedures.")
-
-a
